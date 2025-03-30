@@ -17,5 +17,19 @@
 
         <Label Text="Preço Unitário:" />
         <Entry x:Name="txt_preco" Keyboard="Numeric" />
+
+        <Label Text="Categoria:" />
+        <Picker x:Name="picker_categoria"
+        SelectedItem="{Binding Categoria, Mode=TwoWay}">
+            <Picker.ItemsSource>
+                <x:Array Type="{x:Type x:String}">
+                    <x:String>Alimentos</x:String>
+                    <x:String>Bebidas</x:String>
+                    <x:String>Eletrônicos</x:String>
+                </x:Array>
+            </Picker.ItemsSource>
+        </Picker>
+
+
     </VerticalStackLayout>
 </ContentPage>

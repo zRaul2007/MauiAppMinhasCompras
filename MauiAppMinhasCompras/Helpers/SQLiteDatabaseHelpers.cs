@@ -1,5 +1,6 @@
 ﻿using MauiAppMinhasCompras.Models;
 using SQLite;
+using static SQLite.SQLiteConnection;
 
 namespace MauiAppMinhasCompras.Helpers
 {
@@ -11,6 +12,24 @@ namespace MauiAppMinhasCompras.Helpers
         {
             _conn = new SQLiteAsyncConnection(path);
             _conn.CreateTableAsync<Produto>().Wait();
+
+            // Força a criação da coluna Categoria se ainda não existir
+            _conn.CreateTableAsync<Produto>().Wait();
+
+            // Verifica se a tabela possui a coluna Categoria
+            var colunas = _conn.QueryAsync<ColumnInfo>("PRAGMA table_info(Produto)").Result;
+
+            // Se a coluna "Categoria" não existir, adiciona
+            if (!colunas.Any(c => c.Name == "Categoria"))
+            {
+                _conn.ExecuteAsync("ALTER TABLE Produto ADD COLUMN Categoria TEXT DEFAULT 'Sem Categoria'").Wait();
+            }
+        }
+
+        // Classe auxiliar para capturar informações das colunas
+        public class ColumnInfo
+        {
+            public string Name { get; set; }
         }
 
         public Task<int> Insert(Produto p)
@@ -18,13 +37,9 @@ namespace MauiAppMinhasCompras.Helpers
             return _conn.InsertAsync(p);
         }
 
-        public Task<List<Produto>> Update(Produto p)
+        public Task<int> Update(Produto p)
         {
-            string sql = "UPDATE Produto SET Descricao=?, Quantidade=?, Preco=? WHERE Id=?";
-
-            return _conn.QueryAsync<Produto>(
-                sql, p.Descricao, p.Quantidade, p.Preco, p.Id
-            );
+            return _conn.UpdateAsync(p);
         }
 
         public Task<int> Delete(int id)
@@ -37,11 +52,18 @@ namespace MauiAppMinhasCompras.Helpers
             return _conn.Table<Produto>().ToListAsync();
         }
 
-        public Task<List<Produto>> Search(string q)
+        public Task<List<Produto>> Search(string q, string categoria = null)
         {
-            string sql = "SELECT * FROM Produto WHERE descricao LIKE '%" + q + "%'";
+            string sql = "SELECT * FROM Produto WHERE descricao LIKE ?";
 
-            return _conn.QueryAsync<Produto>(sql);
+            if (!string.IsNullOrEmpty(categoria))
+            {
+                sql += " AND categoria = ?";
+                return _conn.QueryAsync<Produto>(sql, $"%{q}%", categoria);
+            }
+
+            return _conn.QueryAsync<Produto>(sql, $"%{q}%");
         }
+
     }
 }
